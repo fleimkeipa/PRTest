@@ -37,6 +37,19 @@ export const SDK_CSS = `.woot-widget-holder {
   user-select: none;
 }
 
+.woot-widget-bubble.unread-notification::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #ff4040;
+  border-radius: 100%;
+  top: 0px;
+  right: 0px;
+  border: 2px solid #ffffff;
+  transition: background 0.2s ease;
+}
+
 .woot-widget-bubble.woot-widget--expanded {
   bottom: 24px;
   display: flex;
@@ -99,6 +112,7 @@ export const SDK_CSS = `.woot-widget-holder {
 .woot--close::before, .woot--close::after {
   background-color: #fff;
   content: ' ';
+  display: inline;
   height: 24px;
   left: 32px;
   position: absolute;
@@ -149,7 +163,7 @@ export const SDK_CSS = `.woot-widget-holder {
     max-height: 100vh;
     padding: 0 8px;
   }
- 
+
   .woot-widget-holder.has-unread-view iframe {
     min-height: unset !important;
   }
@@ -157,7 +171,7 @@ export const SDK_CSS = `.woot-widget-holder {
  .woot-widget-holder.has-unread-view.woot-elements--left {
     left: 0;
   }
-  
+
   .woot-widget-bubble.woot--close {
     bottom: 60px;
     opacity: 0;

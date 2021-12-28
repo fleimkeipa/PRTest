@@ -8,7 +8,7 @@
       </div>
       <div class="right-aligned-wrap">
         <div class="search-wrap">
-          <i class="ion-ios-search-strong search-icon" />
+          <fluent-icon icon="search" class="search-icon" />
           <input
             type="text"
             :placeholder="$t('CONTACTS_PAGE.SEARCH_INPUT_PLACEHOLDER')"
@@ -19,20 +19,42 @@
           />
           <woot-button
             :is-loading="false"
+            class="clear"
             :class-names="searchButtonClass"
             @click="onSearchSubmit"
           >
             {{ $t('CONTACTS_PAGE.SEARCH_BUTTON') }}
           </woot-button>
         </div>
-
+        <div class="filters__button-wrap">
+          <div v-if="hasAppliedFilters" class="filters__applied-indicator" />
+          <woot-button
+            class="margin-right-small clear"
+            color-scheme="secondary"
+            data-testid="create-new-contact"
+            icon="filter"
+            @click="onToggleFilter"
+          >
+            {{ $t('CONTACTS_PAGE.FILTER_CONTACTS') }}
+          </woot-button>
+        </div>
         <woot-button
+          class="margin-right-small clear"
           color-scheme="success"
-          icon="ion-android-add-circle"
-          @click="onToggleCreate"
+          icon="person-add"
           data-testid="create-new-contact"
+          @click="onToggleCreate"
         >
           {{ $t('CREATE_CONTACT.BUTTON_LABEL') }}
+        </woot-button>
+
+        <woot-button
+          color-scheme="info"
+          icon="upload"
+          class="clear"
+          @click="onToggleImport"
+        >
+          {{ $t('IMPORT_CONTACTS.BUTTON_LABEL') }}
         </woot-button>
       </div>
     </div>
@@ -40,8 +62,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
-  components: {},
   props: {
     headerTitle: {
       type: String,
@@ -63,15 +86,30 @@ export default {
       type: Function,
       default: () => {},
     },
+    onToggleImport: {
+      type: Function,
+      default: () => {},
+    },
+    onToggleFilter: {
+      type: Function,
+      default: () => {},
+    },
   },
   data() {
     return {
       showCreateModal: false,
+      showImportModal: false,
     };
   },
   computed: {
     searchButtonClass() {
       return this.searchQuery !== '' ? 'show' : '';
+    },
+    ...mapGetters({
+      getAppliedContactFilters: 'contacts/getAppliedContactFilters',
+    }),
+    hasAppliedFilters() {
+      return this.getAppliedContactFilters.length;
     },
   },
 };
@@ -140,6 +178,19 @@ export default {
     opacity: 1;
     transform: translateX(0);
     visibility: visible;
+  }
+}
+.filters__button-wrap {
+  position: relative;
+
+  .filters__applied-indicator {
+    position: absolute;
+    height: var(--space-small);
+    width: var(--space-small);
+    top: var(--space-smaller);
+    right: var(--space-slab);
+    background-color: var(--s-500);
+    border-radius: var(--border-radius-rounded);
   }
 }
 </style>

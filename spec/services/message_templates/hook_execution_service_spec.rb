@@ -117,6 +117,9 @@ describe ::MessageTemplates::HookExecutionService do
       conversation.inbox.update(csat_survey_enabled: true)
 
       conversation.resolved!
+      Conversations::ActivityMessageJob.perform_now(conversation,
+                                                    { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
+                                                      content: 'Conversation marked resolved!!' })
 
       expect(::MessageTemplates::Template::CsatSurvey).to have_received(:new).with(conversation: conversation)
       expect(csat_survey).to have_received(:perform)
@@ -126,6 +129,9 @@ describe ::MessageTemplates::HookExecutionService do
       conversation.inbox.update(csat_survey_enabled: false)
 
       conversation.resolved!
+      Conversations::ActivityMessageJob.perform_now(conversation,
+                                                    { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
+                                                      content: 'Conversation marked resolved!!' })
 
       expect(::MessageTemplates::Template::CsatSurvey).not_to have_received(:new).with(conversation: conversation)
       expect(csat_survey).not_to have_received(:perform)
@@ -138,6 +144,9 @@ describe ::MessageTemplates::HookExecutionService do
       conversation.inbox.update(csat_survey_enabled: true)
 
       conversation.resolved!
+      Conversations::ActivityMessageJob.perform_now(conversation,
+                                                    { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
+                                                      content: 'Conversation marked resolved!!' })
 
       expect(::MessageTemplates::Template::CsatSurvey).not_to have_received(:new).with(conversation: conversation)
       expect(csat_survey).not_to have_received(:perform)
@@ -148,31 +157,69 @@ describe ::MessageTemplates::HookExecutionService do
       conversation.messages.create!(message_type: 'outgoing', content_type: :input_csat, account: conversation.account, inbox: conversation.inbox)
 
       conversation.resolved!
+      Conversations::ActivityMessageJob.perform_now(conversation,
+                                                    { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
+                                                      content: 'Conversation marked resolved!!' })
 
       expect(::MessageTemplates::Template::CsatSurvey).not_to have_received(:new).with(conversation: conversation)
       expect(csat_survey).not_to have_received(:perform)
     end
   end
 
-  # TODO: remove this if this hook is removed
-  # context 'when it is after working hours' do
-  #   it 'calls ::MessageTemplates::Template::OutOfOffice' do
-  #     contact = create :contact
-  #     conversation = create :conversation, contact: contact
+  context 'when it is after working hours' do
+    it 'calls ::MessageTemplates::Template::OutOfOffice' do
+      contact = create :contact
+      conversation = create :conversation, contact: contact
 
-  #     conversation.inbox.update(working_hours_enabled: true, out_of_office_message: 'We are out of office')
-  #     conversation.inbox.working_hours.today.update!(closed_all_day: true)
+      conversation.inbox.update(working_hours_enabled: true, out_of_office_message: 'We are out of office')
+      conversation.inbox.working_hours.today.update!(closed_all_day: true)
 
-  #     out_of_office_service = double
+      out_of_office_service = double
 
-  #     allow(::MessageTemplates::Template::OutOfOffice).to receive(:new).and_return(out_of_office_service)
-  #     allow(out_of_office_service).to receive(:perform).and_return(true)
+      allow(::MessageTemplates::Template::OutOfOffice).to receive(:new).and_return(out_of_office_service)
+      allow(out_of_office_service).to receive(:perform).and_return(true)
 
-  #     # described class gets called in message after commit
-  #     message = create(:message, conversation: conversation)
+      # described class gets called in message after commit
+      message = create(:message, conversation: conversation)
 
-  #     expect(::MessageTemplates::Template::OutOfOffice).to have_received(:new).with(conversation: message.conversation)
-  #     expect(out_of_office_service).to have_received(:perform)
-  #   end
-  # end
+      expect(::MessageTemplates::Template::OutOfOffice).to have_received(:new).with(conversation: message.conversation)
+      expect(out_of_office_service).to have_received(:perform)
+    end
+
+    it 'will not calls ::MessageTemplates::Template::OutOfOffice when outgoing message' do
+      contact = create :contact
+      conversation = create :conversation, contact: contact
+
+      conversation.inbox.update(working_hours_enabled: true, out_of_office_message: 'We are out of office')
+      conversation.inbox.working_hours.today.update!(closed_all_day: true)
+
+      out_of_office_service = double
+
+      allow(::MessageTemplates::Template::OutOfOffice).to receive(:new).and_return(out_of_office_service)
+      allow(out_of_office_service).to receive(:perform).and_return(true)
+
+      # described class gets called in message after commit
+      message = create(:message, conversation: conversation, message_type: 'outgoing')
+
+      expect(::MessageTemplates::Template::OutOfOffice).not_to have_received(:new).with(conversation: message.conversation)
+      expect(out_of_office_service).not_to have_received(:perform)
+    end
+
+    it 'will not call ::MessageTemplates::Template::OutOfOffice if its a tweet conversation' do
+      twitter_channel = create(:channel_twitter_profile)
+      twitter_inbox = create(:inbox, channel: twitter_channel)
+      twitter_inbox.update(working_hours_enabled: true, out_of_office_message: 'We are out of office')
+
+      conversation = create(:conversation, inbox: twitter_inbox, additional_attributes: { type: 'tweet' })
+
+      out_of_office_service = double
+
+      allow(::MessageTemplates::Template::OutOfOffice).to receive(:new).and_return(out_of_office_service)
+      allow(out_of_office_service).to receive(:perform).and_return(false)
+
+      message = create(:message, conversation: conversation)
+      expect(::MessageTemplates::Template::OutOfOffice).not_to have_received(:new).with(conversation: message.conversation)
+      expect(out_of_office_service).not_to receive(:perform)
+    end
+  end
 end
