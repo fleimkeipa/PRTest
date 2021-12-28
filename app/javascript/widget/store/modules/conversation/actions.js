@@ -9,6 +9,8 @@ import {
 
 import { createTemporaryMessage, getNonDeletedMessages } from './helpers';
 
+// Get activeConversation and pass it down to each action call, to
+// target the right converdation
 export const actions = {
   createConversation: async ({ commit, dispatch }, params) => {
     commit('setConversationUIFlag', { isCreating: true });
